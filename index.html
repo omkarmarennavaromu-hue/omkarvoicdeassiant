@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Omkar's Personal Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@200;300;400&family=Orbitron:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orb-color: #38bdf8;
+      --orb-glow: #0ea5e9;
+      --orb-deep: #0369a1;
+      --bg: #050a12;
+      --surface: rgba(14, 165, 233, 0.04);
+      --border: rgba(56, 189, 248, 0.12);
+      --text: #e0f2fe;
+      --text-dim: rgba(186, 230, 253, 0.45);
+      --accent: #38bdf8;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Exo 2', sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── Star field ── */
+    #stars {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(14,165,233,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 20% 20%, rgba(56,189,248,0.04) 0%, transparent 70%);
+    }
+    #stars::before, #stars::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 42%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 40% 8%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 55% 30%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 92% 75%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 15% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 88%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 35% 65%, rgba(255,255,255,0.5) 0%, transparent 100%);
+    }
+    #stars::after {
+      background-image:
+        radial-gradient(1.5px 1.5px at 5% 50%, rgba(56,189,248,0.5) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 48% 55%, rgba(56,189,248,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 78% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 20% 92%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 90% 45%, rgba(56,189,248,0.3) 0%, transparent 100%);
+    }
+
+    /* ── Layout ── */
+    #app {
+      position: relative; z-index: 1;
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: space-between;
+      padding: 2.5rem 2rem 2rem;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      animation: fadeDown 1s ease both;
+    }
+    .eyebrow {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.35em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1rem, 2.5vw, 1.45rem);
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      color: var(--text);
+      text-shadow: 0 0 30px rgba(56,189,248,0.35);
+    }
+    h1 span { color: var(--accent); }
+
+    /* ── Center stage ── */
+    #stage {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 2rem;
+    }
+
+    /* ── Orb system ── */
+    #orb-wrapper {
+      position: relative;
+      width: 220px; height: 220px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Outer rings */
+    .ring {
+      position: absolute; border-radius: 50%; border: 1px solid;
+      opacity: 0; pointer-events: none;
+    }
+    .ring-1 { width: 110%; height: 110%; border-color: rgba(56,189,248,0.15); }
+    .ring-2 { width: 130%; height: 130%; border-color: rgba(56,189,248,0.08); }
+    .ring-3 { width: 155%; height: 155%; border-color: rgba(56,189,248,0.05); }
+
+    /* Glow layers */
+    #orb-glow-outer {
+      position: absolute; border-radius: 50%;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, rgba(56,189,248,0.12) 0%, transparent 70%);
+      filter: blur(30px);
+      transition: opacity 0.5s;
+    }
+    #orb-glow-mid {
+      position: absolute; border-radius: 50%;
+      width: 80%; height: 80%;
+      background: radial-gradient(circle, rgba(14,165,233,0.3) 0%, transparent 70%);
+      filter: blur(15px);
+    }
+
+    /* The orb itself */
+    #orb {
+      position: relative; z-index: 2;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%,
+        rgba(255,255,255,0.55) 0%,
+        var(--orb-color) 25%,
+        var(--orb-glow) 55%,
+        var(--orb-deep) 80%,
+        #012a45 100%
+      );
+      box-shadow:
+        0 0 40px rgba(56,189,248,0.5),
+        0 0 80px rgba(56,189,248,0.2),
+        0 0 120px rgba(56,189,248,0.1),
+        inset 0 0 30px rgba(0,0,0,0.4);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: default;
+    }
+    /* Specular highlight */
+    #orb::before {
+      content: '';
+      position: absolute;
+      top: 18%; left: 22%;
+      width: 30%; height: 20%;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.7) 0%, transparent 100%);
+      border-radius: 50%;
+      filter: blur(4px);
+    }
+    /* Secondary highlight */
+    #orb::after {
+      content: '';
+      position: absolute;
+      bottom: 20%; right: 20%;
+      width: 15%; height: 10%;
+      background: radial-gradient(ellipse, rgba(56,189,248,0.6) 0%, transparent 100%);
+      border-radius: 50%;
+      filter: blur(3px);
+    }
+
+    /* ── STATE: IDLE (breathing) ── */
+    .state-idle #orb {
+      animation: breathe 3.5s ease-in-out infinite;
+    }
+    .state-idle #orb-glow-outer { animation: glowBreath 3.5s ease-in-out infinite; opacity: 1; }
+    .state-idle #orb-glow-mid  { animation: glowBreath 3.5s ease-in-out infinite 0.5s; }
+    .state-idle .ring-1 { animation: ringPulse 3.5s ease-in-out infinite; }
+    .state-idle .ring-2 { animation: ringPulse 3.5s ease-in-out infinite 0.4s; }
+    .state-idle .ring-3 { animation: ringPulse 3.5s ease-in-out infinite 0.8s; }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.06); }
+    }
+    @keyframes glowBreath {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50%       { opacity: 1;   transform: scale(1.1); }
+    }
+    @keyframes ringPulse {
+      0%, 100% { opacity: 0; transform: scale(0.95); }
+      50%       { opacity: 1; transform: scale(1.05); }
+    }
+
+    /* ── STATE: LISTENING ── */
+    .state-listening #orb {
+      box-shadow:
+        0 0 50px rgba(56,189,248,0.8),
+        0 0 100px rgba(56,189,248,0.4),
+        0 0 150px rgba(56,189,248,0.2),
+        inset 0 0 30px rgba(0,0,0,0.4);
+    }
+    .state-listening .ring-1 { opacity: 0.6; animation: ringExpand 1.2s ease-out infinite; }
+    .state-listening .ring-2 { opacity: 0.4; animation: ringExpand 1.2s ease-out infinite 0.2s; }
+    .state-listening .ring-3 { opacity: 0.25; animation: ringExpand 1.2s ease-out infinite 0.4s; }
+    @keyframes ringExpand {
+      0%   { transform: scale(0.95); opacity: 0.7; }
+      100% { transform: scale(1.15); opacity: 0; }
+    }
+
+    /* ── STATE: THINKING ── */
+    .state-thinking #orb {
+      animation: shimmerSpin 2s linear infinite;
+    }
+    .state-thinking #orb-glow-outer {
+      opacity: 1;
+      animation: thinkGlow 1s ease-in-out infinite alternate;
+    }
+    @keyframes shimmerSpin {
+      0%   { filter: hue-rotate(0deg) brightness(1); }
+      50%  { filter: hue-rotate(20deg) brightness(1.2); }
+      100% { filter: hue-rotate(0deg) brightness(1); }
+    }
+    @keyframes thinkGlow {
+      from { transform: scale(1);   opacity: 0.6; }
+      to   { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* Thinking orbit dots */
+    #think-orbit {
+      position: absolute; width: 100%; height: 100%;
+      border-radius: 50%; pointer-events: none; opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .state-thinking #think-orbit { opacity: 1; animation: orbitSpin 2s linear infinite; }
+    @keyframes orbitSpin { to { transform: rotate(360deg); } }
+    .orbit-dot {
+      position: absolute; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--orb-color);
+      box-shadow: 0 0 8px var(--orb-color);
+      top: 0; left: 50%; transform: translate(-50%, -50%);
+    }
+    .orbit-dot:nth-child(2) { top: 50%; left: 100%; }
+    .orbit-dot:nth-child(3) { top: 100%; left: 50%; }
+    .orbit-dot:nth-child(4) { top: 50%; left: 0%; }
+
+    /* ── STATE: SPEAKING ── */
+    .state-speaking #orb {
+      animation: speakPulse 0.5s ease-in-out infinite;
+    }
+    .state-speaking #orb-glow-outer {
+      opacity: 1;
+      animation: speakGlow 0.5s ease-in-out infinite;
+    }
+    @keyframes speakPulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.08); }
+    }
+    @keyframes speakGlow {
+      0%, 100% { transform: scale(1);   opacity: 0.7; }
+      50%       { transform: scale(1.3); opacity: 1; }
+    }
+    .state-speaking .ring-1 { animation: speakRing 0.5s ease-in-out infinite; opacity: 0.8; }
+    .state-speaking .ring-2 { animation: speakRing 0.5s ease-in-out infinite 0.1s; opacity: 0.5; }
+    .state-speaking .ring-3 { animation: speakRing 0.5s ease-in-out infinite 0.2s; opacity: 0.3; }
+    @keyframes speakRing {
+      0%, 100% { transform: scale(1);    opacity: 0.7; }
+      50%       { transform: scale(1.12); opacity: 0; }
+    }
+
+    /* ── Status label ── */
+    #status-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-align: center;
+      height: 1.2em;
+      transition: color 0.4s, text-shadow 0.4s;
+    }
+    .state-listening #status-label  { color: var(--accent); text-shadow: 0 0 15px rgba(56,189,248,0.6); }
+    .state-thinking  #status-label  { color: #7dd3fc; text-shadow: 0 0 15px rgba(125,211,252,0.6); }
+    .state-speaking  #status-label  { color: #38bdf8; text-shadow: 0 0 20px rgba(56,189,248,0.8); }
+
+    /* ── Volume bars (listening viz) ── */
+    #vol-bars {
+      display: flex; align-items: flex-end; gap: 4px;
+      height: 40px; opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .state-listening #vol-bars { opacity: 1; }
+    .vol-bar {
+      width: 4px; border-radius: 2px;
+      background: linear-gradient(to top, var(--orb-deep), var(--orb-color));
+      height: 5px;
+      transition: height 0.05s ease;
+      box-shadow: 0 0 6px rgba(56,189,248,0.5);
+    }
+
+    /* ── Bottom bar ── */
+    footer {
+      width: 100%; max-width: 480px;
+      animation: fadeUp 1s ease 0.4s both;
+    }
+
+    .controls-card {
+      background: rgba(14, 165, 233, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.5rem 2rem;
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .voice-row {
+      display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .control-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.35em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .voice-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+    .voice-btn {
+      background: transparent;
+      border: 1px solid rgba(56,189,248,0.2);
+      color: var(--text-dim);
+      font-family: 'Exo 2', sans-serif;
+      font-size: 0.7rem;
+      padding: 0.45rem 0.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .voice-btn:hover {
+      border-color: rgba(56,189,248,0.5);
+      color: var(--text);
+      background: rgba(56,189,248,0.07);
+    }
+    .voice-btn.active {
+      background: rgba(56,189,248,0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 12px rgba(56,189,248,0.2);
+    }
+
+    #start-btn {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: 12px;
+      border: 1px solid var(--accent);
+      background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(14,165,233,0.08));
+      color: var(--accent);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.25em;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 20px rgba(56,189,248,0.15), inset 0 0 20px rgba(56,189,248,0.03);
+    }
+    #start-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(14,165,233,0.15));
+      box-shadow: 0 0 35px rgba(56,189,248,0.35), inset 0 0 20px rgba(56,189,248,0.06);
+      transform: translateY(-1px);
+    }
+    #start-btn:active:not(:disabled) { transform: translateY(0); }
+    #start-btn.active-session {
+      background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.08));
+      border-color: #ef4444;
+      color: #f87171;
+      box-shadow: 0 0 20px rgba(239,68,68,0.2);
+    }
+    #start-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ── Error toast ── */
+    #error-toast {
+      position: fixed; bottom: 2rem; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.4);
+      color: #fca5a5;
+      font-size: 0.78rem;
+      padding: 0.7rem 1.5rem;
+      border-radius: 10px;
+      backdrop-filter: blur(12px);
+      transition: transform 0.4s ease;
+      z-index: 100;
+      font-family: 'Exo 2', sans-serif;
+      letter-spacing: 0.05em;
+      max-width: 90vw; text-align: center;
+    }
+    #error-toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Animations ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div id="app" class="state-idle">
+
+  <header>
+    <p class="eyebrow">Neural Interface v2.1</p>
+    <h1>Welcome to <span>Omkar's</span> Personal Assistant</h1>
+  </header>
+
+  <div id="stage">
+    <div id="orb-wrapper">
+      <!-- Rings -->
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+
+      <!-- Glow layers -->
+      <div id="orb-glow-outer"></div>
+      <div id="orb-glow-mid"></div>
+
+      <!-- Thinking orbit -->
+      <div id="think-orbit">
+        <div class="orbit-dot"></div>
+        <div class="orbit-dot"></div>
+        <div class="orbit-dot"></div>
+        <div class="orbit-dot"></div>
+      </div>
+
+      <!-- The Orb -->
+      <div id="orb"></div>
+    </div>
+
+    <!-- Volume bars (listening) -->
+    <div id="vol-bars"></div>
+
+    <div id="status-label">STANDBY</div>
+  </div>
+
+  <footer>
+    <div class="controls-card">
+      <div class="voice-row">
+        <div class="control-label">Voice Profile</div>
+        <div class="voice-grid">
+          <button class="voice-btn active" data-voice="alloy">Alloy</button>
+          <button class="voice-btn" data-voice="nova">Nova</button>
+          <button class="voice-btn" data-voice="onyx">Onyx</button>
+          <button class="voice-btn" data-voice="shimmer">Shimmer</button>
+        </div>
+      </div>
+
+      <button id="start-btn">⬡ &nbsp; INITIALIZE</button>
+    </div>
+  </footer>
+</div>
+
+<div id="error-toast"></div>
+
+<script>
+// ─── Config ─────────────────────────────────────────────────────────────────
+const SERVER = 'http://localhost:5000';
+
+// ─── State ──────────────────────────────────────────────────────────────────
+const app        = document.getElementById('app');
+const orb        = document.getElementById('orb');
+const statusLbl  = document.getElementById('status-label');
+const startBtn   = document.getElementById('start-btn');
+const volBars    = document.getElementById('vol-bars');
+const errorToast = document.getElementById('error-toast');
+
+let selectedVoice = 'alloy';
+let sessionActive = false;
+let isProcessing  = false;
+
+let mediaStream    = null;
+let audioCtx       = null;
+let analyser       = null;
+let mediaRecorder  = null;
+let audioChunks    = [];
+let volAnimFrame   = null;
+let silenceTimer   = null;
+let volBarEls      = [];
+
+// ─── Build vol bars ──────────────────────────────────────────────────────────
+for (let i = 0; i < 18; i++) {
+  const b = document.createElement('div');
+  b.className = 'vol-bar';
+  volBars.appendChild(b);
+  volBarEls.push(b);
+}
+
+// ─── Voice selector ─────────────────────────────────────────────────────────
+document.querySelectorAll('.voice-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (isProcessing) return;
+    document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedVoice = btn.dataset.voice;
+  });
+});
+
+// ─── State machine ──────────────────────────────────────────────────────────
+const STATES = { IDLE: 'idle', LISTENING: 'listening', THINKING: 'thinking', SPEAKING: 'speaking' };
+const STATE_LABELS = { idle: 'STANDBY', listening: 'LISTENING', thinking: 'PROCESSING', speaking: 'SPEAKING' };
+let currentState = STATES.IDLE;
+
+function setState(s) {
+  currentState = s;
+  app.className = `state-${s}`;
+  statusLbl.textContent = STATE_LABELS[s];
+}
+
+// ─── Error toast ─────────────────────────────────────────────────────────────
+let toastTimer;
+function showError(msg) {
+  errorToast.textContent = msg;
+  errorToast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => errorToast.classList.remove('show'), 4000);
+}
+
+// ─── Start / Stop session ────────────────────────────────────────────────────
+startBtn.addEventListener('click', async () => {
+  if (isProcessing) return;
+  if (sessionActive) { endSession(); return; }
+  await startSession();
+});
+
+async function startSession() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    showError('Microphone access denied. Please allow microphone permissions.');
+    return;
+  }
+
+  audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+  analyser  = audioCtx.createAnalyser();
+  analyser.fftSize = 64;
+  const src = audioCtx.createMediaStreamSource(mediaStream);
+  src.connect(analyser);
+
+  sessionActive = true;
+  startBtn.textContent = '⬡  TERMINATE';
+  startBtn.classList.add('active-session');
+
+  setState(STATES.IDLE);
+  startListening();
+}
+
+function endSession() {
+  sessionActive = false;
+  stopRecording();
+  stopVolViz();
+  clearTimeout(silenceTimer);
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  if (audioCtx)    { audioCtx.close(); audioCtx = null; }
+  analyser = null;
+  isProcessing = false;
+
+  startBtn.textContent = '⬡  INITIALIZE';
+  startBtn.classList.remove('active-session');
+  setState(STATES.IDLE);
+}
+
+// ─── Recording ───────────────────────────────────────────────────────────────
+function startListening() {
+  if (!sessionActive) return;
+  setState(STATES.LISTENING);
+  audioChunks = [];
+
+  // Pick best supported format
+  const mimeType = getSupportedMimeType();
+  mediaRecorder = new MediaRecorder(mediaStream, mimeType ? { mimeType } : {});
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+  mediaRecorder.onstop = () => handleAudioReady();
+  mediaRecorder.start(100);
+
+  startVolViz();
+  scheduleSilenceDetect();
+}
+
+function getSupportedMimeType() {
+  const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+  return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+}
+
+function stopRecording() {
+  stopVolViz();
+  clearTimeout(silenceTimer);
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+}
+
+// ─── Silence detection ───────────────────────────────────────────────────────
+function scheduleSilenceDetect() {
+  clearTimeout(silenceTimer);
+  const data = new Uint8Array(analyser ? analyser.frequencyBinCount : 0);
+  let silentMs = 0;
+  const MIN_DURATION = 1500; // ms of speech before we start silence detection
+  const SILENCE_THRESHOLD = 10;
+  const SILENCE_WINDOW = 1800; // ms of silence to trigger stop
+  let totalMs = 0;
+  const CHECK_INTERVAL = 100;
+
+  const tick = () => {
+    if (!sessionActive || currentState !== STATES.LISTENING) return;
+    if (analyser) { analyser.getByteFrequencyData(data); }
+    const avg = data.reduce((a, b) => a + b, 0) / data.length;
+    totalMs += CHECK_INTERVAL;
+
+    if (avg < SILENCE_THRESHOLD) {
+      silentMs += CHECK_INTERVAL;
+    } else {
+      silentMs = 0;
+    }
+
+    if (totalMs > MIN_DURATION && silentMs >= SILENCE_WINDOW) {
+      stopRecording();
+      return;
+    }
+    silenceTimer = setTimeout(tick, CHECK_INTERVAL);
+  };
+
+  silenceTimer = setTimeout(tick, CHECK_INTERVAL);
+}
+
+// ─── Volume visualizer ───────────────────────────────────────────────────────
+function startVolViz() {
+  const data = new Uint8Array(analyser ? analyser.frequencyBinCount : 0);
+  const draw = () => {
+    if (!sessionActive || currentState !== STATES.LISTENING) return;
+    if (analyser) analyser.getByteFrequencyData(data);
+    volBarEls.forEach((bar, i) => {
+      const idx = Math.floor(i * data.length / volBarEls.length);
+      const h = Math.max(5, (data[idx] / 255) * 38);
+      bar.style.height = h + 'px';
+    });
+    volAnimFrame = requestAnimationFrame(draw);
+  };
+  draw();
+}
+
+function stopVolViz() {
+  cancelAnimationFrame(volAnimFrame);
+  volBarEls.forEach(b => b.style.height = '5px');
+}
+
+// ─── Send audio to backend ───────────────────────────────────────────────────
+async function handleAudioReady() {
+  if (!sessionActive) return;
+  if (audioChunks.length === 0) { startListening(); return; }
+
+  isProcessing = true;
+  setState(STATES.THINKING);
+
+  const mimeType = mediaRecorder.mimeType || 'audio/webm';
+  const blob = new Blob(audioChunks, { type: mimeType });
+
+  // Check blob is non-trivial
+  if (blob.size < 2000) {
+    isProcessing = false;
+    if (sessionActive) startListening();
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('audio', blob, 'recording.webm');
+  formData.append('voice', selectedVoice);
+
+  try {
+    const res = await fetch(`${SERVER}/chat`, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res.status}`);
+    }
+
+    const audioBlob = await res.blob();
+    setState(STATES.SPEAKING);
+    await playAudio(audioBlob);
+
+  } catch (e) {
+    showError(e.message || 'Connection error. Is the server running?');
+    console.error(e);
+  }
+
+  isProcessing = false;
+  if (sessionActive) { setState(STATES.IDLE); setTimeout(startListening, 600); }
+}
+
+// ─── Play audio ───────────────────────────────────────────────────────────────
+function playAudio(blob) {
+  return new Promise(resolve => {
+    const url    = URL.createObjectURL(blob);
+    const audio  = new Audio(url);
+
+    // Sync orb pulse to audio if analyser available
+    if (audioCtx) {
+      const src2  = audioCtx.createMediaElementSource(audio);
+      const anal2 = audioCtx.createAnalyser();
+      anal2.fftSize = 32;
+      src2.connect(anal2);
+      src2.connect(audioCtx.destination);
+
+      const data2 = new Uint8Array(anal2.frequencyBinCount);
+      const pulse = () => {
+        if (currentState !== STATES.SPEAKING) return;
+        anal2.getByteFrequencyData(data2);
+        const avg = data2.reduce((a, b) => a + b, 0) / data2.length;
+        const scale = 1 + (avg / 255) * 0.15;
+        orb.style.transform = `scale(${scale})`;
+        requestAnimationFrame(pulse);
+      };
+      pulse();
+    }
+
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      orb.style.transform = '';
+      resolve();
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      orb.style.transform = '';
+      resolve();
+    };
+
+    audio.play().catch(e => { console.error('Playback error:', e); resolve(); });
+  });
+}
+</script>
+</body>
+</html>
